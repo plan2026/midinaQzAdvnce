@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منظومة التقييم الاستراتيجي | الخيط الذهبي</title>
+    <style>
+        :root { --primary: #1a3a5f; --gold: #d4b483; --bg: #f4f7f9; --white: #ffffff; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        body { background: var(--primary); color: #333; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        
+        .container { background: var(--white); width: 100%; max-width: 900px; border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); overflow: hidden; position: relative; }
+        .top-bar { height: 8px; background: var(--gold); width: 100%; }
+        
+        /* شاشات البداية والنهاية */
+        .screen { padding: 40px; display: none; text-align: center; }
+        .active { display: block; animation: fadeIn 0.5s ease; }
+
+        h1 { color: var(--primary); margin-bottom: 10px; font-size: 28px; }
+        p.subtitle { color: #666; margin-bottom: 30px; font-size: 15px; }
+
+        input, select { width: 80%; padding: 12px; margin: 10px 0; border: 2px solid #eee; border-radius: 10px; outline: none; font-size: 16px; }
+        input:focus { border-color: var(--gold); }
+
+        /* منطقة الأسئلة */
+        .stats { display: flex; justify-content: space-between; background: var(--bg); padding: 15px; border-radius: 12px; margin-bottom: 20px; font-weight: bold; font-size: 14px; }
+        .question-text { font-size: 20px; color: var(--primary); font-weight: 700; margin-bottom: 25px; line-height: 1.6; text-align: right; }
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        @media (max-width: 600px) { .options-grid { grid-template-columns: 1fr; } }
+        
+        .opt { background: #fff; border: 2px solid #eee; padding: 15px; border-radius: 12px; cursor: pointer; transition: 0.3s; font-weight: 600; text-align: center; }
+        .opt:hover { border-color: var(--gold); background: var(--bg); }
+        .opt.correct { background: #d4edda; border-color: #28a745; color: #155724; }
+        .opt.wrong { background: #f8d7da; border-color: #dc3545; color: #721c24; }
+
+        .feedback { display: none; margin-top: 20px; padding: 20px; background: #fff9e6; border-right: 5px solid var(--gold); border-radius: 8px; text-align: right; font-size: 14px; }
+
+        .btn { background: var(--primary); color: white; border: none; padding: 15px 40px; border-radius: 50px; cursor: pointer; font-weight: bold; font-size: 16px; transition: 0.3s; margin-top: 20px; }
+        .btn:hover { background: #2c5f9e; transform: scale(1.05); }
+        .btn:disabled { background: #ccc; cursor: not-allowed; }
+
+        /* الشهادة */
+        #cert-box { border: 15px double var(--gold); padding: 40px; background: white; margin-top: 20px; position: relative; }
+        .cert-title { font-size: 30px; font-weight: 900; color: var(--primary); margin-bottom: 20px; }
+        .cert-body { font-size: 18px; line-height: 2; margin-bottom: 30px; }
+        .cert-name { font-size: 26px; color: var(--gold); font-weight: bold; text-decoration: underline; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @media print { body * { visibility: hidden; } #cert-box, #cert-box * { visibility: visible; } #cert-box { position: absolute; left: 0; top: 0; width: 100%; border: none; } .no-print { display: none; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="top-bar"></div>
+
+    <div id="start-screen" class="screen active">
+        <h1>منظومة التقييم الاستراتيجي</h1>
+        <p class="subtitle">تأهيل "عقل الدولة" وصياغة الخيط الذهبي للتخطيط الوطني</p>
+        <input type="text" id="user-name" placeholder="أدخل الاسم الكامل ليظهر في الشهادة">
+        <select id="user-level">
+            <option value="">اختر المستوى الوظيفي/الأكاديمي</option>
+            <option value="طالب / باحث">طالب / باحث</option>
+            <option value="مخطط مبتدئ">مخطط مبتدئ</option>
+            <option value="أخصائي تخطيط">أخصائي تخطيط</option>
+            <option value="مدير إدارة تخطيط">مدير إدارة تخطيط</option>
+        </select>
+        <br>
+        <button class="btn" onclick="startQuiz()">بدء التقييم الوطني</button>
+    </div>
+
+    <div id="quiz-screen" class="screen">
+        <div class="stats">
+            <span>السؤال: <span id="q-num">1</span> / 50</span>
+            <span id="timer" style="color: #dc3545;">30:00</span>
+            <span>النقاط: <span id="q-score">0</span></span>
+        </div>
+        <div id="q-category" style="color: var(--gold); font-weight: bold; margin-bottom: 10px; text-align: right;"></div>
+        <div id="q-text" class="question-text"></div>
+        <div id="options" class="options-grid"></div>
+        <div id="feedback" class="feedback"></div>
+        <button id="next-btn" class="btn" onclick="nextQuestion()" disabled>السؤال التالي ←</button>
+    </div>
+
+    <div id="final-screen" class="screen">
+        <div id="cert-box">
+            <div class="cert-header">المجلس الوطني للتخطيط</div>
+            <div class="cert-title">شهادة كفاءة في التخطيط الاستراتيجي</div>
+            <div class="cert-body">
+                نشهد بأن السيد/ة: <span id="display-name" class="cert-name"></span><br>
+                بصفته/ا: <span id="display-level"></span><br>
+                قد اجتاز بنجاح التقييم الشامل لـ <b>"لغة التخطيط الموحدة"</b><br>
+                بنسبة إنجاز قدرها: <span id="display-score" style="font-weight: bold; color: var(--primary);"></span>
+            </div>
+            <p style="font-size: 12px;">تاريخ التقييم: <span id="display-date"></span> | كود التحقق: NPC-2026</p>
+        </div>
+        <button class="btn no-print" style="background: #28a745;" onclick="window.print()">طباعة الشهادة</button>
+        <button class="btn no-print" onclick="location.reload()">إعادة التقييم</button>
+    </div>
+</div>
+
+<script>
+// بنك الأسئلة المعتمد على مبادئك الـ 7
+const bank = [
+    { cat: "مبدأ الترابط العمودي", q: "ما هي المهمة الأولى لمدير التخطيط عند البدء في صياغة خطة المؤسسة؟", o: ["بدء التخطيط من حيث انتهت الاستراتيجية الوطنية", "صياغة أهداف جديدة كلياً للمؤسسة", "التركيز على ميزانية المؤسسة فقط", "تجاهل الخطط القطاعية"], f: "التوجيه: لا تبدأ من الصفر، بل اضبط بوصلة المؤسسة على توقيت الدولة لضمان الاتساق." },
+    { cat: "مركزية البيانات", q: "الفرق الجوهري بين الحلم والاستراتيجية في منظور مدراء التخطيط هو:", o: ["وجود تشخيص دقيق مبني على الأرقام", "صياغة كلمات رنانة", "تعدد الصفحات في وثيقة الخطة", "رضا الموظفين العام"], f: "التوجيه: الاستراتيجية ليست إنشائية، بل هي تشخيص للواقع بالأدلة الإحصائية." },
+    { cat: "لغة التخطيط الموحدة", q: "ما هو التعريف الإجرائي لـ 'الغاية الاستراتيجية' (Strategic Goal)؟", o: ["نتيجة نهائية عامة وطويلة الأمد تخدم الرؤية", "رقم محدد يجب الوصول إليه غداً", "مجموعة مشاريع تشغيلية", "وصف للمهام اليومية"], f: "التوجيه: الغاية تخدم الرؤية الوطنية الكبرى وتكون بعيدة المدى." },
+    { cat: "منطق التسلسل", q: "عند التحرك في منطق التسلسل للأعلى (لماذا؟)، فإن المبادرة تهدف إلى تحقيق:", o: ["هدف مؤسسي يخدم غاية قطاعية", "زيادة في عدد الموظفين", "صرف الميزانية السنوية", "إلغاء الخطة السابقة"], f: "التوجيه: الصعود دائماً يربط الصغير بالكبير (المبادرة -> الهدف -> الغاية -> الرؤية)." },
+    { cat: "الواقعية والمرونة", q: "ماذا يعني وجود 'مساحة للمناورة' في الخطة الاستراتيجية؟", o: ["إدارة استباقية للمخاطر وسيناريوهات بديلة", "تغيير الأهداف كل أسبوع", "عدم الالتزام بجدول زمني", "تقليل الطموح الوطني"], f: "التوجيه: المرونة تعني الاستعداد للمتغيرات العالمية مثل أسعار النفط أو الأزمات." },
+    { cat: "قابلية القياس", q: "حسب قاعدة SMART، المؤشر الذي يمكن جمعه من عدة جهات للوصول للرقم الوطني يسمى:", o: ["مؤشر قابل للتجميع (Aggregatable)", "مؤشر وصفي", "مؤشر داخلي", "مؤشر جودة فقط"], f: "التوجيه: المؤشرات القابلة للتجميع تسمح للدولة برؤية الصورة الكاملة للقطاع." },
+    { cat: "التشاركية", q: "لماذا يجب إشراك الجهات ذات العلاقة في صياغة الأهداف؟", o: ["لضمان التملك المؤسسي وحماية التنفيذ", "لتوزيع المسؤولية عند الفشل", "لتقليل عبء العمل على مدير التخطيط", "لأن القانون يفرض ذلك فقط"], f: "التوجيه: الاستراتيجيات التي تُولد في غرف مغلقة تموت على الرفوف." }
+    // ... يمكن إضافة بقية الـ 50 سؤالاً هنا بنفس النمط
+];
+
+// تكرار الأسئلة للوصول لـ 50 في العرض
+let finalBank = [];
+while(finalBank.length < 50) {
+    finalBank = [...finalBank, ...bank.map(b => ({...b}))];
+}
+finalBank = finalBank.slice(0, 50);
+
+let currentIdx = 0, score = 0, timer, timeLeft = 30 * 60;
+
+function startQuiz() {
+    const name = document.getElementById('user-name').value;
+    const level = document.getElementById('user-level').value;
+    if(!name || !level) return alert("يرجى إدخال الاسم واختيار المستوى");
+    
+    document.getElementById('start-screen').classList.remove('active');
+    document.getElementById('quiz-screen').classList.add('active');
+    shuffle(finalBank);
+    showQuestion();
+    startTimer();
+}
+
+function startTimer() {
+    timer = setInterval(() => {
+        timeLeft--;
+        let m = Math.floor(timeLeft / 60), s = timeLeft % 60;
+        document.getElementById('timer').innerText = `${m}:${s < 10 ? '0'+s : s}`;
+        if(timeLeft <= 0) endQuiz();
+    }, 1000);
+}
+
+function showQuestion() {
+    const q = finalBank[currentIdx];
+    document.getElementById('q-num').innerText = currentIdx + 1;
+    document.getElementById('q-category').innerText = q.cat;
+    document.getElementById('q-text').innerText = q.q;
+    document.getElementById('next-btn').disabled = true;
+    document.getElementById('feedback').style.display = 'none';
+
+    const options = shuffle([...q.o]);
+    const div = document.getElementById('options');
+    div.innerHTML = "";
+    options.forEach(opt => {
+        const btn = document.createElement('div');
+        btn.className = 'opt';
+        btn.innerText = opt;
+        btn.onclick = () => checkAnswer(btn, opt, q.o[0], q.f);
+        div.appendChild(btn);
+    });
+}
+
+function checkAnswer(btn, selected, correct, feedback) {
+    if(document.getElementById('next-btn').disabled === false) return;
+    if(selected === correct) {
+        btn.classList.add('correct'); score++;
+        document.getElementById('q-score').innerText = score;
+    } else {
+        btn.classList.add('wrong');
+        Array.from(document.getElementsByClassName('opt')).forEach(b => {
+            if(b.innerText === correct) b.classList.add('correct');
+        });
+    }
+    document.getElementById('feedback').innerText = feedback;
+    document.getElementById('feedback').style.display = 'block';
+    document.getElementById('next-btn').disabled = false;
+}
+
+function nextQuestion() {
+    currentIdx++;
+    if(currentIdx < 50) showQuestion(); else endQuiz();
+}
+
+function endQuiz() {
+    clearInterval(timer);
+    document.getElementById('quiz-screen').classList.remove('active');
+    document.getElementById('final-screen').classList.add('active');
+    
+    document.getElementById('display-name').innerText = document.getElementById('user-name').value;
+    document.getElementById('display-level').innerText = document.getElementById('user-level').value;
+    document.getElementById('display-score').innerText = ((score/50)*100).toFixed(1) + "%";
+    document.getElementById('display-date').innerText = new Date().toLocaleDateString('ar-QA');
+}
+
+function shuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
+</script>
+</body>
+</html>
